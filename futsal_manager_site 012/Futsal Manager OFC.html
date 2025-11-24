@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚽ Futsal Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #0a8d0a;
+            --primary-dark: #0a6d0a;
+            --primary-light: #0a4d0a;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --border-color: #e5e7eb;
+            --card-shadow: rgba(0,0,0,0.3);
+        }
+
+        body.dark-mode {
+            --primary: #F6C641;
+            --primary-dark: #f5b927;
+            --primary-light: #e6a900;
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #444444;
+            --card-shadow: rgba(0,0,0,0.6);
+        }
+
+        * {
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary-light) 0%, #000000 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-primary);
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+        }
+
+        .card {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px var(--card-shadow);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-theme {
+            background: var(--primary);
+            color: var(--text-primary);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-theme:hover {
+            background: var(--primary-dark);
+        }
+
+        .scoreboard {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 16px var(--card-shadow);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 600;
+            /* default color for light/verde */
+            color: black;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            border-bottom-color: var(--primary);
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* quando estiver no modo amarelo (dark-mode) as tabs ficam brancas */
+        body.dark-mode .tab { color: white; }
+
+        .input-field {
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            width: 100%;
+            font-size: 14px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .soccer-ball {
+            display: inline-block;
+            font-size: 24px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .goal-animation {
+            animation: goalFlash 0.5s;
+        }
+
+        @keyframes goalFlash {
+            0%, 100% { background: var(--bg-primary); }
+            50% { background: #86efac; }
+        }
+
+        .goal-celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .soccer-ball-fly {
+            position: absolute;
+            font-size: 60px;
+            animation: ballFly 2s ease-out forwards;
+        }
+
+        @keyframes ballFly {
+            0% {
+                left: 50%;
+                top: 100%;
+                transform: translate(-50%, 0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -200px) rotate(720deg) scale(1.5);
+            }
+            100% {
+                left: 50%;
+                top: -100px;
+                transform: translate(-50%, -400px) rotate(1440deg) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            opacity: 1;
+            animation: confettiFall 3s ease-out forwards;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                top: -10px;
+                opacity: 1;
+            }
+            100% {
+                top: 100%;
+                opacity: 0;
+                transform: rotate(720deg);
+            }
+        }
+
+        .goal-text {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            font-weight: 900;
+            color: var(--primary);
+            text-shadow: 4px 4px 0px #000, -2px -2px 0px #fff;
+            z-index: 10000;
+            animation: goalTextBounce 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes goalTextBounce {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 1;
+            }
+            70% {
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .goal-team-btn {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .goal-team-btn:hover {
+            transform: scale(1.05);
+        }
+
+        body.dark-mode .goal-team-btn {
+            background: #2d2d2d !important;
+            border-color: #F6C641 !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .goal-team-btn span {
+            color: #ffffff;
+        }
+
+        .player-goal-btn {
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .player-goal-btn:hover {
+            border-color: var(--primary);
+            background: var(--bg-secondary);
+            transform: translateX(5px);
+        }
+
+        .player-goal-btn.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: #ffffff;
+        }
+
+        .player-goal-btn.assist-selected {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: #ffffff;
+            opacity: 0.8;
+        }
+
+        body.dark-mode .player-goal-btn {
+            background: #000000;
+            color: #ffffff;
+        }
+
+        body.dark-mode .player-goal-btn:hover {
+            background: #1a1a1a;
+        }
+
+        .event-item {
+            border-left: 4px solid var(--primary);
+            padding-left: 12px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        body:not(.dark-mode) .event-item {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        body.dark-mode .event-item {
+            background: #1a1a1a;
+            color: #ffffff;
+            border-left-color: #F6C641;
+        }
+
+        body.dark-mode .event-item .event-details {
+            color: #b0b0b0;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .team-card {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            border-left: 4px solid var(--primary);
+        }
+
+        .rank-item {
+            border-left: 4px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .rank-item.top3 {
+            border-left-color: var(--primary);
+            background: var(--bg-secondary);
+        }
+
+        .ranking-header {
+            background: #1f2937;
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .rank-details {
+            color: #ffffff;
+            background: #374151;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        .config-select {
+            padding: 10px 14px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+
+        .config-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(10, 141, 10, 0.1);
+        }
+
+        body.dark-mode .config-select:focus {
+            box-shadow: 0 0 0 3px rgba(246, 198, 65, 0.1);
+        }
+
+        .config-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timer-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .timer-btn-start {
+            background: #16a34a;
+            color: white;
+        }
+
+        .timer-btn-start:hover {
+            background: #15803d;
+        }
+
+        .timer-btn-pause {
+            background: #eab308;
+            color: white;
+        }
+
+        .timer-btn-pause:hover {
+            background: #ca8a04;
+        }
+
+        .timer-btn-resume {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .timer-btn-resume:hover {
+            background: #2563eb;
+        }
+
+        .timer-btn-reset {
+            background: #6b7280;
+            color: white;
+        }
+
+        .timer-btn-reset:hover {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto p-4 max-w-7xl">
+        <!-- Header com botão de tema -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex-1 text-center">
+                <img src="https://i.imgur.com/7EHC1xB.png" alt="Futsal Manager" class="h-32 sm:h-40 md:h-52 mx-auto">
+            </div>
+            <button class="btn-theme ml-2" onclick="toggleTheme()">
+                <span id="themeIcon">🌙</span>
+            </button>
+        </div>
+
+        <div class="card mb-4">
+            <div class="flex overflow-x-auto" id="tabs">
+                <div class="tab active" onclick="showTab('partida', event)">🏆 Partida</div>
+                <div class="tab" onclick="showTab('sorteador', event)">🎲 Sorteador</div>
+                <div class="tab" onclick="showTab('times', event)">👥 Times</div>
+                <div class="tab" onclick="showTab('ranking', event)">📊 Rankings</div>
+                <div class="tab" onclick="showTab('historico', event)">📜 Histórico</div>
+            </div>
+        </div>
+
+        <div id="tab-partida" class="tab-content">
+            <div class="card p-5 mb-4">
+                <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    ⚙️ Configurar Partida
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="config-label">
+                            🏠 Time da Casa
+                        </label>
+                        <select id="selectHome" class="config-select w-full">
+                            <option value="">Selecione o time...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="config-label">
+                            ✈️ Time Visitante
+                        </label>
+                        <select id="selectAway" class="config-select w-full">
+                            <option value="">Selecione o time...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2 flex-wrap justify-center">
+                    <button class="timer-btn timer-btn-start" onclick="startMatch()">
+                        <span>▶</span> Iniciar
+                    </button>
+                    <button class="timer-btn timer-btn-pause" onclick="pauseMatch()">
+                        <span>⏸</span> Pausar
+                    </button>
+                    <button class="timer-btn timer-btn-resume" onclick="resumeMatch()">
+                        <span>▶</span> Retomar
+                    </button>
+                    <button class="timer-btn timer-btn-reset" onclick="resetTimer()">
+                        <span>🔄</span> Reset
+                    </button>
+                </div>
+            </div>
+
+            <div class="scoreboard mb-4" id="scoreboard">
+                <div class="text-center mb-4">
+                    <div class="text-6xl font-bold mb-2">
+                        <span id="scoreHome">0</span> - <span id="scoreAway">0</span>
+                    </div>
+                    <div class="text-2xl font-semibold mb-1">
+                        ⏱️ <span id="timerDisplay">10:00</span>
+                    </div>
+                    <div class="text-sm opacity-80" id="matchStatus">Aguardando início</div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div>
+                        <div class="text-sm opacity-80">Casa</div>
+                        <div class="text-xl font-bold" id="homeTeamName">-</div>
+                    </div>
+                    <div>
+                        <div class="text-sm opacity-80">Visitante</div>
+                        <div class="text-xl font-bold" id="awayTeamName">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-4 mb-4">
+                <h3 class="font-bold text-center mb-4 text-lg">⚽ Registrar Gol</h3>
+                
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button id="btnSelectHome" class="goal-team-btn border-4 border-green-600 bg-green-50 p-4 rounded-lg font-bold transition-all" onclick="selectGoalTeam('home')">
+                        🏠<br><span class="text-sm" id="goalBtnHomeName">Casa</span>
+                    </button>
+                    <button id="btnSelectAway" class="goal-team-btn border-2 border-gray-300 bg-white p-4 rounded-lg font-bold transition-all" onclick="selectGoalTeam('away')">
+                        ✈️<br><span class="text-sm" id="goalBtnAwayName">Visitante</span>
+                    </button>
+                </div>
+                
+                <div id="goalPlayersList" class="space-y-2 mb-3">
+                    <p class="text-gray-400 text-sm text-center">Selecione o time acima</p>
+                </div>
+                
+                <div id="assistSection" class="hidden mb-3">
+                    <label class="block text-sm font-semibold mb-2 text-center">🎯 Assistência (opcional)</label>
+                    <div id="assistPlayersList" class="space-y-2"></div>
+                </div>
+                
+                <button id="btnConfirmGoal" class="btn-primary w-full text-lg py-3 hidden" onclick="confirmGoal()">
+                    ⚽ CONFIRMAR GOL!
+                </button>
+            </div>
+
+            <div class="card p-4 mb-4">
+                <h3 class="font-bold mb-3">📋 Eventos da Partida</h3>
+                <div id="eventsList" class="space-y-2 max-h-60 overflow-y-auto" style="padding: 12px; border-radius: 8px;">
+                    <p class="text-gray-500 text-sm">Nenhum evento registrado</p>
+                </div>
+            </div>
+
+            <div class="card p-4 mb-4">
+                <h3 class="font-bold mb-3">⚙️ Controles Rápidos</h3>
+                <div class="flex gap-2 mb-3">
+                    <button class="btn-secondary flex-1" onclick="adjustTime(-60)">-1 min</button>
+                    <button class="btn-secondary flex-1" onclick="adjustTime(60)">+1 min</button>
+                    <button class="btn-secondary flex-1" onclick="endTime()">⏱️ Fim</button>
+                </div>
+                <button class="btn-danger w-full" onclick="endMatch()">🏁 Terminar Partida</button>
+            </div>
+        </div>
+
+        
+        <div id="tab-sorteador" class="tab-content hidden">
+            <div class="card p-4 mb-4">
+                <h2 class="text-lg font-bold mb-4">🎲 Sorteador de Times</h2>
+                <p class="text-sm mb-3">Cole os nomes (um por linha) ou separe por vírgula. Máximo por time: <strong>5</strong> jogadores.</p>
+                <textarea id="sorteadorInput" class="input-field mb-3" rows="6" placeholder="Ex: João&#10;Maria&#10;Carlos"></textarea>
+                <div class="flex gap-2 mb-3">
+                    <button class="btn-primary" onclick="sortearTimes()">🎯 Sortear Times</button>
+                    <button class="btn-secondary" onclick="clearSorteador()">🧹 Limpar</button>
+                </div>
+                <div id="sorteadorResult" class="space-y-3"></div>
+                <div class="text-xs mt-3 text-gray-500">Ao sortear, TODOS os times existentes serão substituídos pelos times sorteados (Opção A).</div>
+            </div>
+        </div>
+<div id="tab-times" class="tab-content hidden">
+            <div class="card p-4 mb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">👥 Times (<span id="teamCount">0</span>/5)</h2>
+                    <button class="btn-primary" onclick="addTeam()">➕ Novo Time</button>
+                </div>
+                <div id="teamsList" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div id="tab-ranking" class="tab-content hidden">
+            <div class="card p-4 mb-4">
+                <h2 class="ranking-header">🏆 Artilheiros</h2>
+                <div id="artilheirosList" class="space-y-2"></div>
+            </div>
+            <div class="card p-4 mb-4">
+                <h2 class="ranking-header">🧤 Melhores Goleiros</h2>
+                <div id="goleirosList" class="space-y-2 mb-4"></div>
+                <div class="space-y-2">
+                    <h3 class="font-bold text-base mb-3">🏅 Votação - Melhor Defesa</h3>
+                    <select id="selectBestDefense" class="w-full mb-2">
+                        <option value="">Selecione o goleiro com melhor defesa</option>
+                    </select>
+                    <button class="btn-primary w-full" onclick="voteBestDefense()">🏆 Registrar Voto</button>
+                    <div id="bestDefenseResult" class="mt-3 p-3 rounded" style="background: var(--bg-secondary); display: none;">
+                        <p class="font-bold">🏆 Melhor Defesa:</p>
+                        <p id="bestDefenseText"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-historico" class="tab-content hidden">
+            <div class="card p-4 mb-4">
+                <div class="flex gap-2 mb-4 flex-wrap">
+                    <button class="btn-secondary" onclick="exportHistory()">📤 Exportar (Historico)</button>
+                    <button class="btn-danger" onclick="clearHistory()">🗑️ Limpar</button>
+                </div>
+                <div id="historyList" class="space-y-3"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            teams: [],
+            history: [],
+            currentMatch: {
+                home: null,
+                away: null,
+                timeLeft: 600,
+                running: false,
+                events: [],
+                score: { home: 0, away: 0 }
+            },
+            goalRegistration: {
+                selectedTeamSide: 'home',
+                selectedScorer: null,
+                selectedAssist: null
+            },
+            theme: 'light',
+            bestDefenseVotes: {}
+        };
+
+        let timerInterval = null;
+
+        function uid(prefix = 'id') {
+            return `${prefix}_${Math.random().toString(36).slice(2,9)}`;
+        }
+
+        function loadState() {
+            try {
+                const teams = localStorage.getItem('futsal_teams_v2');
+                const history = localStorage.getItem('futsal_history_v2');
+                const theme = localStorage.getItem('futsal_theme_v2');
+                const votes = localStorage.getItem('futsal_best_defense_v2');
+                state.teams = teams ? JSON.parse(teams) : [];
+                state.history = history ? JSON.parse(history) : [];
+                state.theme = theme || 'light';
+                state.bestDefenseVotes = votes ? JSON.parse(votes) : {};
+                applyTheme();
+            } catch(e) {
+                console.error('Erro ao carregar:', e);
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('futsal_teams_v2', JSON.stringify(state.teams));
+            localStorage.setItem('futsal_history_v2', JSON.stringify(state.history));
+            localStorage.setItem('futsal_theme_v2', state.theme);
+            localStorage.setItem('futsal_best_defense_v2', JSON.stringify(state.bestDefenseVotes));
+        }
+
+        function toggleTheme() {
+            state.theme = state.theme === 'light' ? 'dark' : 'light';
+            applyTheme();
+            saveState();
+        }
+
+        function applyTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('themeIcon');
+            
+            if (state.theme === 'dark') {
+                body.classList.add('dark-mode');
+                themeIcon.textContent = '☀️';
+            } else {
+                body.classList.remove('dark-mode');
+                themeIcon.textContent = '🌙';
+            }
+        }
+
+        function showTab(tabName, evt) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            if (evt && evt.target) evt.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            
+            if (tabName === 'times') renderTeams();
+            if (tabName === 'ranking') renderRankings();
+            if (tabName === 'historico') renderHistory();
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            state.currentMatch.running = true;
+            timerInterval = setInterval(() => {
+                if (state.currentMatch.timeLeft <= 0) {
+                    stopTimer();
+                    return;
+                }
+                state.currentMatch.timeLeft--;
+                updateTimerDisplay();
+            }, 1000);
+            updateMatchStatus();
+        }
+
+        function stopTimer() {
+            state.currentMatch.running = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            updateMatchStatus();
+        }
+
+        function updateTimerDisplay() {
+            const mm = Math.floor(state.currentMatch.timeLeft / 60).toString().padStart(2, '0');
+            const ss = (state.currentMatch.timeLeft % 60).toString().padStart(2, '0');
+            document.getElementById('timerDisplay').textContent = `${mm}:${ss}`;
+        }
+
+        function updateMatchStatus() {
+            const status = state.currentMatch.running ? '🟢 Em andamento' : '⏸️ Pausado';
+            document.getElementById('matchStatus').textContent = status;
+        }
+
+        function startMatch() {
+            const homeId = document.getElementById('selectHome').value;
+            const awayId = document.getElementById('selectAway').value;
+            
+            if (!homeId || !awayId) return alert('Selecione ambos os times!');
+            if (homeId === awayId) return alert('Escolha times diferentes!');
+            
+            const home = state.teams.find(t => t.id === homeId);
+            const away = state.teams.find(t => t.id === awayId);
+            
+            if (!home || !away) return alert('Times não encontrados');
+            if (home.players.length < 1 || away.players.length < 1) {
+                return alert('Cada time precisa ter pelo menos 1 jogador!');
+            }
+            
+            state.currentMatch = {
+                home: homeId,
+                away: awayId,
+                timeLeft: 600,
+                running: false,
+                events: [],
+                score: { home: 0, away: 0 }
+            };
+            
+            updateScoreboard();
+            updateGoalSelects();
+            startTimer();
+        }
+
+        function pauseMatch() {
+            stopTimer();
+        }
+
+        function resumeMatch() {
+            if (state.currentMatch.timeLeft === 0) {
+                return alert('Tempo esgotado! Use Reset Tempo para reiniciar.');
+            }
+            startTimer();
+        }
+
+        function resetTimer() {
+            stopTimer();
+            state.currentMatch.timeLeft = 600;
+            updateTimerDisplay();
+        }
+
+        function adjustTime(seconds) {
+            state.currentMatch.timeLeft = Math.max(0, Math.min(600, state.currentMatch.timeLeft + seconds));
+            updateTimerDisplay();
+        }
+
+        function endTime() {
+            state.currentMatch.timeLeft = 0;
+            stopTimer();
+            updateTimerDisplay();
+        }
+
+        function updateScoreboard() {
+            const home = state.teams.find(t => t.id === state.currentMatch.home);
+            const away = state.teams.find(t => t.id === state.currentMatch.away);
+            
+            document.getElementById('homeTeamName').textContent = home ? home.name : '-';
+            document.getElementById('awayTeamName').textContent = away ? away.name : '-';
+            document.getElementById('scoreHome').textContent = state.currentMatch.score.home;
+            document.getElementById('scoreAway').textContent = state.currentMatch.score.away;
+            
+            document.getElementById('scoreboard').classList.add('goal-animation');
+            setTimeout(() => {
+                document.getElementById('scoreboard').classList.remove('goal-animation');
+            }, 500);
+        }
+
+        function playGoalAnimation() {
+            const celebration = document.createElement('div');
+            celebration.className = 'goal-celebration';
+            document.body.appendChild(celebration);
+            
+            const goalText = document.createElement('div');
+            goalText.className = 'goal-text';
+            goalText.textContent = 'GOOOL!';
+            document.body.appendChild(goalText);
+            
+            const ball = document.createElement('div');
+            ball.className = 'soccer-ball-fly';
+            ball.textContent = '⚽';
+            celebration.appendChild(ball);
+            
+            const colors = ['#0a8d0a', '#ffffff', '#000000', '#ffd700', '#ff6b6b', '#4ecdc4'];
+            const confettiCount = 50;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    confetti.style.animationDuration = (Math.random() * 1 + 2) + 's';
+                    celebration.appendChild(confetti);
+                }, i * 30);
+            }
+            
+            setTimeout(() => {
+                celebration.remove();
+                goalText.remove();
+            }, 3000);
+        }
+
+        function updateGoalSelects() {
+            const side = state.goalRegistration.selectedTeamSide;
+            const teamId = side === 'home' ? state.currentMatch.home : state.currentMatch.away;
+            const team = state.teams.find(t => t.id === teamId);
+            
+            const homeTeam = state.teams.find(t => t.id === state.currentMatch.home);
+            const awayTeam = state.teams.find(t => t.id === state.currentMatch.away);
+            document.getElementById('goalBtnHomeName').textContent = homeTeam ? homeTeam.name : 'Casa';
+            document.getElementById('goalBtnAwayName').textContent = awayTeam ? awayTeam.name : 'Visitante';
+            
+            document.getElementById('btnSelectHome').className = side === 'home' 
+                ? 'goal-team-btn border-4 border-green-600 bg-green-50 p-4 rounded-lg font-bold transition-all'
+                : 'goal-team-btn border-2 border-gray-300 bg-white p-4 rounded-lg font-bold transition-all';
+            document.getElementById('btnSelectAway').className = side === 'away'
+                ? 'goal-team-btn border-4 border-green-600 bg-green-50 p-4 rounded-lg font-bold transition-all'
+                : 'goal-team-btn border-2 border-gray-300 bg-white p-4 rounded-lg font-bold transition-all';
+            
+            const playersList = document.getElementById('goalPlayersList');
+            const assistList = document.getElementById('assistPlayersList');
+            
+            if (!team || team.players.length === 0) {
+                playersList.innerHTML = '<p class="text-gray-400 text-sm text-center">Nenhum jogador disponível</p>';
+                assistList.innerHTML = '';
+                document.getElementById('assistSection').classList.add('hidden');
+                document.getElementById('btnConfirmGoal').classList.add('hidden');
+                return;
+            }
+            
+            playersList.innerHTML = '<label class="block text-sm font-semibold mb-2 text-center">⚽ Quem fez o gol?</label>' +
+                team.players.map(p => {
+                    const isSelected = state.goalRegistration.selectedScorer === p.id;
+                    return `
+                        <button class="player-goal-btn w-full ${isSelected ? 'selected' : ''}" 
+                                onclick="selectScorer('${p.id}')">
+                            ${p.name} ${p.isGoalkeeper ? '🧤' : ''}
+                        </button>
+                    `;
+                }).join('');
+            
+            if (state.goalRegistration.selectedScorer) {
+                document.getElementById('assistSection').classList.remove('hidden');
+                assistList.innerHTML = team.players
+                    .filter(p => p.id !== state.goalRegistration.selectedScorer)
+                    .map(p => {
+                        const isSelected = state.goalRegistration.selectedAssist === p.id;
+                        return `
+                            <button class="player-goal-btn w-full ${isSelected ? 'assist-selected' : ''}" 
+                                    onclick="selectAssist('${p.id}')">
+                                ${p.name} ${p.isGoalkeeper ? '🧤' : ''}
+                            </button>
+                        `;
+                    }).join('');
+                assistList.innerHTML += `
+                    <button class="player-goal-btn w-full ${state.goalRegistration.selectedAssist === null && state.goalRegistration.selectedScorer ? 'assist-selected' : ''}" 
+                            onclick="selectAssist(null)">
+                        Sem assistência
+                    </button>
+                `;
+                document.getElementById('btnConfirmGoal').classList.remove('hidden');
+            } else {
+                document.getElementById('assistSection').classList.add('hidden');
+                document.getElementById('btnConfirmGoal').classList.add('hidden');
+            }
+        }
+        
+        function selectGoalTeam(side) {
+            state.goalRegistration.selectedTeamSide = side;
+            state.goalRegistration.selectedScorer = null;
+            state.goalRegistration.selectedAssist = null;
+            updateGoalSelects();
+        }
+        
+        function selectScorer(playerId) {
+            state.goalRegistration.selectedScorer = playerId;
+            state.goalRegistration.selectedAssist = null;
+            updateGoalSelects();
+        }
+        
+        function selectAssist(playerId) {
+            state.goalRegistration.selectedAssist = playerId;
+            updateGoalSelects();
+        }
+        
+        function confirmGoal() {
+            const side = state.goalRegistration.selectedTeamSide;
+            const scorerId = state.goalRegistration.selectedScorer;
+            const assistId = state.goalRegistration.selectedAssist;
+            
+            if (!scorerId) return alert('Selecione quem fez o gol!');
+            
+            const teamId = side === 'home' ? state.currentMatch.home : state.currentMatch.away;
+            const elapsed = 600 - state.currentMatch.timeLeft;
+            const mm = Math.floor(elapsed / 60);
+            const ss = elapsed % 60;
+            const time = `${mm}:${String(ss).padStart(2,'0')}`;
+            
+            const event = {
+                id: uid('ev'),
+                time,
+                type: 'goal',
+                teamId,
+                scorerId,
+                assistId,
+                minute: mm,
+                second: ss
+            };
+            
+            state.currentMatch.events.push(event);
+            state.currentMatch.score[side]++;
+            
+            playGoalAnimation();
+            
+            updateScoreboard();
+            renderEvents();
+            
+            state.goalRegistration.selectedScorer = null;
+            state.goalRegistration.selectedAssist = null;
+            updateGoalSelects();
+        }
+
+        function renderEvents() {
+            const container = document.getElementById('eventsList');
+            if (state.currentMatch.events.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">Nenhum evento registrado</p>';
+                return;
+            }
+            
+            container.innerHTML = state.currentMatch.events.map(ev => {
+                const team = state.teams.find(t => t.id === ev.teamId);
+                const scorer = getPlayerNameById(ev.scorerId);
+                const assist = ev.assistId ? getPlayerNameById(ev.assistId) : null;
+                return `
+                    <div class="event-item">
+                        <div class="font-semibold">⚽ ${ev.time} - ${team ? team.name : 'Time'}</div>
+                        <div class="text-sm event-details">${scorer}${assist ? ` (assist: ${assist})` : ''}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function endMatch() {
+            if (!confirm('Deseja finalizar esta partida?')) return;
+            
+            stopTimer();
+            
+            const home = state.teams.find(t => t.id === state.currentMatch.home);
+            const away = state.teams.find(t => t.id === state.currentMatch.away);
+            
+            if (!home || !away) return alert('Times inválidos');
+            
+            const match = {
+                id: uid('match'),
+                date: new Date().toISOString(),
+                home: { id: home.id, name: home.name, score: state.currentMatch.score.home },
+                away: { id: away.id, name: away.name, score: state.currentMatch.score.away },
+                events: state.currentMatch.events,
+                duration: 600 - state.currentMatch.timeLeft
+            };
+            
+            state.history.unshift(match);
+            saveState();
+            
+            state.currentMatch = {
+                home: null,
+                away: null,
+                timeLeft: 600,
+                running: false,
+                events: [],
+                score: { home: 0, away: 0 }
+            };
+            
+            document.getElementById('selectHome').value = '';
+            document.getElementById('selectAway').value = '';
+            updateScoreboard();
+            renderEvents();
+            
+            alert('Partida finalizada e salva no histórico!');
+        }
+
+        function renderTeams() {
+            document.getElementById('teamCount').textContent = state.teams.length;
+            const container = document.getElementById('teamsList');
+            
+            if (state.teams.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center text-sm">Nenhum time cadastrado. Clique em "Novo Time" para começar!</p>';
+                return;
+            }
+            
+            container.innerHTML = state.teams.map(team => `
+                <div class="team-card p-3 rounded-lg">
+                    <div class="flex flex-col gap-2 mb-2">
+                        <input class="font-bold text-base border-b-2 border-transparent hover:border-green-600 focus:border-green-600 outline-none px-2 w-full input-field" 
+                               value="${team.name}" 
+                               onchange="renameTeam('${team.id}', this.value)">
+                        <div class="flex gap-2">
+                            <button class="btn-secondary text-xs flex-1 py-2" onclick="addPlayerToTeam('${team.id}')">➕ Jogador</button>
+                            <button class="btn-danger text-xs px-3 py-2" onclick="removeTeam('${team.id}')">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="space-y-1.5">
+                        ${team.players.length === 0 ? '<p class="text-gray-400 text-xs text-center py-2">Nenhum jogador</p>' : ''}
+                        ${team.players.map(p => `
+                            <div class="flex flex-col bg-white p-2 rounded border gap-1.5">
+                                <input class="outline-none px-1 text-sm font-medium w-full input-field" 
+                                       value="${p.name}" 
+                                       onchange="editPlayerName('${team.id}', '${p.id}', this.value)">
+                                <div class="flex gap-1 items-center justify-between">
+                                    ${p.isGoalkeeper ? 
+                                        '<span class="text-xs bg-green-600 text-white px-2 py-1 rounded flex-1 text-center">🧤 Goleiro</span>' : 
+                                        `<button class="text-xs btn-secondary py-1 px-2 flex-1" onclick="setGoalkeeper('${team.id}', '${p.id}')">Tornar GK</button>`
+                                    }
+                                    <button class="text-xs btn-secondary py-1 px-2" onclick="movePlayerPrompt('${p.id}')">↔️</button>
+                                    <button class="text-xs text-red-600 font-bold px-2" onclick="removePlayer('${team.id}', '${p.id}')">❌</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+            
+            updateTeamSelects();
+        }
+
+        function updateTeamSelects() {
+            const selectHome = document.getElementById('selectHome');
+            const selectAway = document.getElementById('selectAway');
+            const currentHome = selectHome.value;
+            const currentAway = selectAway.value;
+            
+            selectHome.innerHTML = '<option value="">Selecione o time...</option>';
+            selectAway.innerHTML = '<option value="">Selecione o time...</option>';
+            
+            state.teams.forEach(t => {
+                selectHome.innerHTML += `<option value="${t.id}" ${t.id === currentHome ? 'selected' : ''}>${t.name}</option>`;
+                selectAway.innerHTML += `<option value="${t.id}" ${t.id === currentAway ? 'selected' : ''}>${t.name}</option>`;
+            });
+        }
+
+        function addTeam() {
+            if (state.teams.length >= 5) return alert('Máximo de 5 times permitido!');
+            const name = prompt('Nome do time:') || `Time ${state.teams.length + 1}`;
+            state.teams.push({
+                id: uid('team'),
+                name,
+                players: []
+            });
+            saveState();
+            renderTeams();
+        }
+
+        function removeTeam(teamId) {
+            if (!confirm('Remover este time e todos os seus jogadores?')) return;
+            state.teams = state.teams.filter(t => t.id !== teamId);
+            saveState();
+            renderTeams();
+        }
+
+        function renameTeam(teamId, name) {
+            const team = state.teams.find(t => t.id === teamId);
+            if (team) team.name = name;
+            saveState();
+        }
+
+        function addPlayerToTeam(teamId) {
+            const team = state.teams.find(t => t.id === teamId);
+            if (!team) return;
+            if (team.players.length >= 6) return alert('Máximo 6 jogadores por team!');
+            
+            const name = prompt('Nome do jogador:') || `Jogador ${team.players.length + 1}`;
+            team.players.push({
+                id: uid('player'),
+                name,
+                isGoalkeeper: team.players.length === 0
+            });
+            saveState();
+            renderTeams();
+        }
+
+        function removePlayer(teamId, playerId) {
+            if (!confirm('Remover este jogador?')) return;
+            const team = state.teams.find(t => t.id === teamId);
+            if (!team) return;
+            team.players = team.players.filter(p => p.id !== playerId);
+            if (team.players.length > 0 && !team.players.some(p => p.isGoalkeeper)) {
+                team.players[0].isGoalkeeper = true;
+            }
+            saveState();
+            renderTeams();
+        }
+
+        function editPlayerName(teamId, playerId, name) {
+            const team = state.teams.find(t => t.id === teamId);
+            if (!team) return;
+            const player = team.players.find(p => p.id === playerId);
+            if (player) player.name = name;
+            saveState();
+        }
+
+        function setGoalkeeper(teamId, playerId) {
+            const team = state.teams.find(t => t.id === teamId);
+            if (!team) return;
+            team.players.forEach(p => p.isGoalkeeper = (p.id === playerId));
+            saveState();
+            renderTeams();
+        }
+
+        function movePlayerPrompt(playerId) {
+            const dest = prompt('Mover para qual time? (digite o nome)');
+            if (!dest) return;
+            const target = state.teams.find(t => t.name.toLowerCase() === dest.toLowerCase());
+            if (!target) return alert('Time não encontrado!');
+            
+            let moving = null;
+            state.teams.forEach(team => {
+                const idx = team.players.findIndex(p => p.id === playerId);
+                if (idx >= 0) {
+                    moving = team.players.splice(idx, 1)[0];
+                }
+            });
+            
+            if (moving) {
+                moving.isGoalkeeper = false;
+                target.players.push(moving);
+                saveState();
+                renderTeams();
+            }
+        }
+
+        function computePlayerStats() {
+            const playersMap = {};
+            const goalkeeperStats = {};
+            
+            state.history.forEach(match => {
+                match.events.forEach(ev => {
+                    if (ev.type === 'goal') {
+                        if (ev.scorerId) {
+                            playersMap[ev.scorerId] = playersMap[ev.scorerId] || { 
+                                name: getPlayerNameById(ev.scorerId), 
+                                goals: 0, 
+                                assists: 0 
+                            };
+                            playersMap[ev.scorerId].goals++;
+                        }
+                        if (ev.assistId) {
+                            playersMap[ev.assistId] = playersMap[ev.assistId] || { 
+                                name: getPlayerNameById(ev.assistId), 
+                                goals: 0, 
+                                assists: 0 
+                            };
+                            playersMap[ev.assistId].assists++;
+                        }
+                    }
+                });
+                
+                const concededHome = match.away.score;
+                const concededAway = match.home.score;
+                const homeGKId = findGoalkeeperId(match.home.id);
+                const awayGKId = findGoalkeeperId(match.away.id);
+                
+                if (homeGKId) {
+                    goalkeeperStats[homeGKId] = goalkeeperStats[homeGKId] || { conceded: 0, matches: 0 };
+                    goalkeeperStats[homeGKId].conceded += concededHome;
+                    goalkeeperStats[homeGKId].matches++;
+                }
+                if (awayGKId) {
+                    goalkeeperStats[awayGKId] = goalkeeperStats[awayGKId] || { conceded: 0, matches: 0 };
+                    goalkeeperStats[awayGKId].conceded += concededAway;
+                    goalkeeperStats[awayGKId].matches++;
+                }
+            });
+            
+            return { playersMap, goalkeeperStats };
+        }
+
+        function renderRankings() {
+            const { playersMap, goalkeeperStats } = computePlayerStats();
+            
+            const artilheiros = Object.entries(playersMap).map(([id, data]) => ({
+                id,
+                name: data.name,
+                goals: data.goals,
+                assists: data.assists,
+                points: data.goals + data.assists
+            })).sort((a, b) => b.points - a.points || b.goals - a.goals);
+            
+            const artilheirosContainer = document.getElementById('artilheirosList');
+            if (artilheiros.length === 0) {
+                artilheirosContainer.innerHTML = '<p class="text-gray-500 text-center">Nenhum dado disponível ainda</p>';
+            } else {
+                let lastPoints = null, rank = 0, count = 0;
+                artilheirosContainer.innerHTML = artilheiros.slice(0, 20).map(p => {
+                    count++;
+                    if (p.points !== lastPoints) { rank = count; lastPoints = p.points; }
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                    return `
+                        <div class="rank-item ${rank <= 3 ? 'top3' : ''} p-3 rounded">
+                            <div class="font-bold">${medal} ${p.name}</div>
+                            <div class="rank-details">⚽ Gols: ${p.goals} | 🎯 Assists: ${p.assists} | 📊 Pontos: ${p.points}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            const goleiros = Object.entries(goalkeeperStats).map(([id, data]) => ({
+                id,
+                name: getPlayerNameById(id),
+                conceded: data.conceded,
+                matches: data.matches,
+                average: data.matches > 0 ? (data.conceded / data.matches).toFixed(2) : 0
+            })).sort((a, b) => parseFloat(a.average) - parseFloat(b.average) || a.conceded - b.conceded);
+            
+            const goleirosContainer = document.getElementById('goleirosList');
+            if (goleiros.length === 0) {
+                goleirosContainer.innerHTML = '<p class="text-gray-500 text-center">Nenhum dado disponível ainda</p>';
+            } else {
+                let lastAvg = null, rank = 0, count = 0;
+                goleirosContainer.innerHTML = goleiros.slice(0, 20).map(g => {
+                    count++;
+                    if (g.average !== lastAvg) { rank = count; lastAvg = g.average; }
+                    const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                    return `
+                        <div class="rank-item ${rank <= 3 ? 'top3' : ''} p-3 rounded">
+                            <div class="font-bold">${medal} ${g.name}</div>
+                            <div class="rank-details">🧤 Média: ${g.average} gols/jogo | ⚽ Sofridos: ${g.conceded} | 🎮 Partidas: ${g.matches}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            const selectBestDefense = document.getElementById('selectBestDefense');
+            selectBestDefense.innerHTML = '<option value="">Selecione o goleiro com melhor defesa</option>';
+            goleiros.forEach(g => {
+                selectBestDefense.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+            });
+            
+            const voteCounts = {};
+            Object.values(state.bestDefenseVotes).forEach(gkId => {
+                voteCounts[gkId] = (voteCounts[gkId] || 0) + 1;
+            });
+            
+            if (Object.keys(voteCounts).length > 0) {
+                const maxVotes = Math.max(...Object.values(voteCounts));
+                const bestDefenseId = Object.keys(voteCounts).find(id => voteCounts[id] === maxVotes);
+                const bestDefenseName = getPlayerNameById(bestDefenseId);
+                
+                document.getElementById('bestDefenseResult').style.display = 'block';
+                document.getElementById('bestDefenseText').innerHTML = `
+                    <div class="text-base font-bold text-center mt-2">${bestDefenseName}</div>
+                    <div class="text-sm text-center">Votos: ${maxVotes}</div>
+                `;
+            } else {
+                document.getElementById('bestDefenseResult').style.display = 'none';
+            }
+        }
+        
+        function voteBestDefense() {
+            const selectBestDefense = document.getElementById('selectBestDefense');
+            const selectedGKId = selectBestDefense.value;
+            
+            if (!selectedGKId) {
+                return alert('Selecione um goleiro para votar!');
+            }
+            
+            const voterKey = `voter_${Math.random().toString(36).slice(2,9)}`;
+            state.bestDefenseVotes[voterKey] = selectedGKId;
+            saveState();
+            selectBestDefense.value = '';
+            renderRankings();
+            alert('Voto registrado com sucesso!');
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            if (state.history.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">Nenhuma partida no histórico</p>';
+                return;
+            }
+            
+            container.innerHTML = state.history.map(m => `
+                <div class="card p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="font-bold text-lg">${m.home.name} ${m.home.score} x ${m.away.score} ${m.away.name}</div>
+                            <div class="text-xs text-gray-500">${new Date(m.date).toLocaleString('pt-BR')}</div>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            ⏱️ ${Math.floor(m.duration/60)}m ${m.duration%60}s
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="font-semibold text-sm mb-1">Eventos:</div>
+                        ${m.events.length === 0 ? '<p class="text-gray-400 text-xs">Sem eventos</p>' : ''}
+                        ${m.events.map(ev => {
+                            const team = state.teams.find(t => t.id === ev.teamId);
+                            const scorer = getPlayerNameById(ev.scorerId);
+                            const assist = ev.assistId ? getPlayerNameById(ev.assistId) : null;
+                            return `
+                                <div class="text-xs border-l-2 border-green-600 pl-2 py-1">
+                                    ⚽ ${ev.time} - ${team ? team.name : 'Time'}: ${scorer}${assist ? ` (${assist})` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            if (!confirm('Deseja limpar todo o histórico? Esta ação não pode ser desfeita!')) return;
+            state.history = [];
+            state.bestDefenseVotes = {}; // limpar também os votos de melhor defesa
+            saveState();
+            renderHistory();
+            renderRankings();
+        }
+
+        function exportHistory() {
+
+    if (!state.history || state.history.length === 0)
+        return alert('Nenhuma partida no histórico para exportar');
+
+    // ---- 1) COLETA DE DADOS ----
+    const { playersMap, goalkeeperStats } = computePlayerStats();
+
+    let txt = "";
+    txt += "===============================\n";
+    txt += "      HISTÓRICO DE PARTIDAS\n";
+    txt += "===============================\n\n";
+
+    // ---- 2) PARTIDAS ----
+    state.history.forEach(m => {
+        txt += `${new Date(m.date).toLocaleString('pt-BR')}\n`;
+        txt += `${m.home.name} ${m.home.score} x ${m.away.score} ${m.away.name}\n\n`;
+
+        if (m.events.length === 0) {
+            txt += "  - Sem eventos\n\n";
+        } else {
+            m.events.forEach(ev => {
+                const team = state.teams.find(t => t.id === ev.teamId);
+                const scorer = getPlayerNameById(ev.scorerId);
+                const assist = ev.assistId ? getPlayerNameById(ev.assistId) : null;
+
+                txt += `  - ${ev.time} | ${team ? team.name : 'Time'}: ${scorer}`;
+                if (assist) txt += ` (assist: ${assist})`;
+                txt += "\n";
+            });
+            txt += "\n";
+        }
+        txt += "--------------------------------\n\n";
+    });
+
+    // ---- 3) RANKING DE ARTILHEIROS ----
+    txt += "===============================\n";
+    txt += "        RANKING: ARTILHEIROS\n";
+    txt += "===============================\n\n";
+
+    const artilheiros = Object.entries(playersMap)
+        .map(([id, d]) => ({
+            id,
+            name: d.name,
+            goals: d.goals,
+            assists: d.assists,
+            points: d.goals + d.assists
+        }))
+        .sort((a, b) => b.points - a.points || b.goals - a.goals);
+
+    if (artilheiros.length === 0) {
+        txt += "Nenhum dado disponível.\n\n";
+    } else {
+        artilheiros.forEach((p, i) => {
+            txt += `${i+1}. ${p.name} — ${p.goals}G / ${p.assists}A (Total: ${p.points})\n`;
+        });
+        txt += "\n";
+    }
+
+    // ---- 4) RANKING DE GOLEIROS ----
+    txt += "===============================\n";
+    txt += "      RANKING: GOLEIROS\n";
+    txt += "===============================\n\n";
+
+    const goleiros = Object.entries(goalkeeperStats)
+        .map(([id, d]) => ({
+            id,
+            name: getPlayerNameById(id),
+            conceded: d.conceded,
+            matches: d.matches,
+            media: d.matches > 0 ? (d.conceded / d.matches).toFixed(2) : "0.00"
+        }))
+        .sort((a, b) => a.media - b.media);
+
+    if (goleiros.length === 0) {
+        txt += "Nenhum dado disponível.\n\n";
+    } else {
+        goleiros.forEach((g, i) => {
+            txt += `${i+1}. ${g.name} — Sofridos: ${g.conceded} | Jogos: ${g.matches} | Média: ${g.media}\n`;
+        });
+        txt += "\n";
+    }
+
+    // ---- 5) DOWNLOAD DO TXT ----
+    const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `historico_completo_${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+        }
+
+        function getPlayerNameById(playerId) {
+            if (!playerId) return '(ex)';
+            for (const t of state.teams) {
+                for (const p of t.players) {
+                    if (p.id === playerId) return p.name;
+                }
+            }
+            return 'Desconhecido';
+        }
+
+        function findGoalkeeperId(teamId) {
+            const team = state.teams.find(t => t.id === teamId);
+            if (!team) return null;
+            const gk = team.players.find(p => p.isGoalkeeper);
+            return gk ? gk.id : (team.players[0] ? team.players[0].id : null);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            renderTeams();
+            updateTeamSelects();
+            updateTimerDisplay();
+            updateMatchStatus();
+            updateScoreboard();
+            updateGoalSelects();
+        });
+    
+        // --------- SORTEADOR: adiciona funcionalidade de sortear nomes em times (max 5 por time) ---------
+        function parseNamesInput(raw) {
+            if (!raw) return [];
+            // split by newlines or commas, trim, filter empties
+            const list = raw.split(/\n|,/).map(s => s.trim()).filter(Boolean);
+            // remove duplicate empty entries
+            return list;
+        }
+
+        function shuffleArray(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function sortearTimes() {
+            const raw = document.getElementById('sorteadorInput').value;
+            const names = parseNamesInput(raw);
+            if (!names || names.length === 0) return alert('Insira pelo menos um nome para sortear.');
+            
+            // Máximo por time = 5
+            const maxPerTeam = 5;
+            const numTeams = Math.ceil(names.length / maxPerTeam);
+            const shuffled = shuffleArray(names.slice());
+            
+            // Limpa todos os times existentes (Opção A)
+            state.teams = [];
+            
+            // Criar times dividindo os nomes em grupos de até 5
+            for (let t = 0; t < numTeams; t++) {
+                const start = t * maxPerTeam;
+                const group = shuffled.slice(start, start + maxPerTeam);
+                const teamObj = {
+                    id: uid('team'),
+                    name: `Time ${t + 1}`,
+                    players: group.map((nm, idx) => ({
+                        id: uid('player'),
+                        name: nm,
+                        isGoalkeeper: idx === 0 // primeiro jogador do time vira goleiro por padrão
+                    }))
+                };
+                state.teams.push(teamObj);
+            }
+            
+            saveState();
+            renderTeams();
+            updateTeamSelects();
+            
+            // Mostrar resultado no painel do sorteador para pré-visualização
+            const res = document.getElementById('sorteadorResult');
+            res.innerHTML = state.teams.map(t => `
+                <div class="team-card p-3 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="font-bold">${t.name} <span class="text-xs text-gray-500">(${t.players.length} jogadores)</span></div>
+                    </div>
+                    <div class="space-y-1">${t.players.map(p => `<div class="text-sm">${p.name}${p.isGoalkeeper ? ' 🧤' : ''}</div>`).join('')}</div>
+                </div>
+            `).join('');
+            
+            // ir automaticamente para aba Times para ver resultado (mantemos a aba Sorteador visível também)
+            // showTab('times');
+        }
+
+        function clearSorteador() {
+            document.getElementById('sorteadorInput').value = '';
+            document.getElementById('sorteadorResult').innerHTML = '';
+        }
+        // ---------------------------------------------------------------------------------------------
+</script>
+</body>
+</html>
